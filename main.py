@@ -349,7 +349,7 @@ async def callback_edit(c: types.CallbackQuery):
 
     # faqat product id bor bo‘lsa (ya'ni tugma: edit_{pid})
     if len(parts) == 2:  
-        pid = int(parts[1])
+        pid = int(parts[-1])
 
         kb = InlineKeyboardMarkup(row_width=2)
         kb.add(InlineKeyboardButton("Nomi", callback_data=f"edit_field_{pid}_name"))
