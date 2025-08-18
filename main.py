@@ -399,9 +399,11 @@ async def callback_edit_field(c: types.CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(lambda c: c.data == 'edit_cancel')
-async def edit_cancel_cb(c: types.CallbackQuery):
-    await c.message.reply("✖️ Tahrirlash bekor qilindi.")
+async def edit_cancel_cb(c: types.CallbackQuery, state: FSMContext):
+    await state.finish()  # agar tahrirlash jarayoni bo‘lsa tugatamiz
+    await c.message.edit_text("✖️ Tahrirlash bekor qilindi.")  # reply emas, edit
     await c.answer()
+
 
 @dp.message_handler(state=EditProduct.field)
 async def edit_receive_text(message: types.Message, state: FSMContext):
