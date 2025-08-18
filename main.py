@@ -347,28 +347,32 @@ async def callback_edit(c: types.CallbackQuery):
 
     parts = c.data.split("_")
 
-    # faqat product id bor bo‘lsa (ya'ni tugma: edit_{pid})
-    if len(parts) == 2:  
-        pid = int(parts[-1])
+    # Faqat edit_{pid} bo‘lsa
+    if len(parts) == 2:
+        pid = int(parts[1])
 
         kb = InlineKeyboardMarkup(row_width=2)
-        kb.add(InlineKeyboardButton("Nomi", callback_data=f"edit_field_{pid}_name"))
-        kb.add(InlineKeyboardButton("Narxi", callback_data=f"edit_field_{pid}_price"))
-        kb.add(InlineKeyboardButton("Model", callback_data=f"edit_field_{pid}_model"))
-        kb.add(InlineKeyboardButton("Made in", callback_data=f"edit_field_{pid}_madein"))
-        kb.add(InlineKeyboardButton("Rasm(lar)", callback_data=f"edit_field_{pid}_images"))
+        kb.add(InlineKeyboardButton("Nomi", callback_data=f"editfield_{pid}_name"))
+        kb.add(InlineKeyboardButton("Narxi", callback_data=f"editfield_{pid}_price"))
+        kb.add(InlineKeyboardButton("Model", callback_data=f"editfield_{pid}_model"))
+        kb.add(InlineKeyboardButton("Made in", callback_data=f"editfield_{pid}_made_in"))
+        kb.add(InlineKeyboardButton("Rasm(lar)", callback_data=f"editfield_{pid}_product_images"))
         kb.add(InlineKeyboardButton("Bekor", callback_data="edit_cancel"))
 
         await c.message.reply("✏️ Qaysi maydonni tahrirlashni xohlaysiz?", reply_markup=kb)
-        await c.answer()
+    else:
+        await c.answer("❌ Xato tugma!", show_alert=True)
+
+    await c.answer()
 
 
 # Fieldni olish
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith("edit_field_"))
+@dp.callback_query_handler(lambda c: c.data and c.data.startswith("editfield_"))
 async def callback_edit_field(c: types.CallbackQuery, state: FSMContext):
-    parts = c.data.split("_")  # ["edit", "field", pid, field]
-    pid = int(parts[2])
-    field = parts[3]
+    # format: editfield_{pid}_{field}
+    parts = c.data.split("_")
+    pid = int(parts[1])
+    field = parts[2]
 
     await state.update_data(product_id=pid, field=field)
 
@@ -382,12 +386,14 @@ async def callback_edit_field(c: types.CallbackQuery, state: FSMContext):
         await c.message.reply("🔢 Yangi modelni kiriting:")
         await EditProduct.field.set()
     elif field == 'madein':
-        await state.update_data(field='made_in')  # bazada made_in bo‘lsa
-        await c.message.reply("🏭 Yangi qayerda ishlab chiqarilganini kiriting:")
+        await state.update_data(field='made_in')  # bazada made_in
+        await c.message.reply("🏭 Yangi joyni kiriting:")
         await EditProduct.field.set()
     elif field == 'images':
-        await c.message.reply("🖼 Yangi rasm(lar) yuboring (1-3 ta). Yakunlash uchun /done yuboring.")
+        await c.message.reply("🖼 Rasm(lar) yuboring (1-3 ta). Yakunlash uchun /done yuboring.")
         await EditProduct.value.set()
+    else:
+        await c.answer("❌ Noma'lum maydon", show_alert=True)
 
     await c.answer()
 
@@ -396,6 +402,23 @@ async def callback_edit_field(c: types.CallbackQuery, state: FSMContext):
 async def edit_cancel_cb(c: types.CallbackQuery):
     await c.message.reply("✖️ Tahrirlash bekor qilindi.")
     await c.answer()
+
+@dp.message_handler(state=EditProduct.field)
+async def edit_receive_text(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    pid = data.get('product_id')
+    field = data.get('field')
+    new_value = message.text
+
+    if field not in ('name', 'price', 'model', 'made_in'):
+        await message.answer("❌ Noma'lum maydon")
+        await state.finish()
+        return
+
+    db_query(f"UPDATE products SET {field}=? WHERE id=?", (new_value, pid))
+    await message.answer("✅ Maydon yangilandi.")
+    await state.finish()
+
 
 # ============= /edit and /delete commands (admin only) ==============
 @dp.message_handler(commands=['edit'], commands_prefix='/', user_id=ADMINS)
