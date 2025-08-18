@@ -356,7 +356,7 @@ async def callback_edit(c: types.CallbackQuery):
         kb.add(InlineKeyboardButton("Narxi", callback_data=f"editfield_{pid}_price"))
         kb.add(InlineKeyboardButton("Model", callback_data=f"editfield_{pid}_model"))
         kb.add(InlineKeyboardButton("Made in", callback_data=f"editfield_{pid}_made_in"))
-        kb.add(InlineKeyboardButton("Rasm(lar)", callback_data=f"editfield_{pid}_product_images"))
+        kb.add(InlineKeyboardButton("Rasm(lar)", callback_data=f"editfield_{pid}_images"))
         kb.add(InlineKeyboardButton("Bekor", callback_data="edit_cancel"))
 
         await c.message.reply("✏️ Qaysi maydonni tahrirlashni xohlaysiz?", reply_markup=kb)
