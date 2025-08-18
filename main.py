@@ -413,7 +413,7 @@ async def edit_receive_text(message: types.Message, state: FSMContext):
     new_value = message.text
 
     if field not in ('name', 'price', 'model', 'made_in'):
-        await message.answer("❌ Noma'lum maydon")
+        await message.answer("❌ Noma'lum maydon! Iltimos bosh qattan yozing ")
         await state.finish()
         return
 
