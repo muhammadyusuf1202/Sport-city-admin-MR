@@ -345,18 +345,22 @@ async def callback_edit(c: types.CallbackQuery):
         await c.answer("❌ Siz admin emassiz!", show_alert=True)
         return
 
-    pid = int(c.data.split("_")[-1])
+    parts = c.data.split("_")
 
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(InlineKeyboardButton("Nomi", callback_data=f"edit_field_{pid}_name"))
-    kb.add(InlineKeyboardButton("Narxi", callback_data=f"edit_field_{pid}_price"))
-    kb.add(InlineKeyboardButton("Model", callback_data=f"edit_field_{pid}_model"))
-    kb.add(InlineKeyboardButton("Made in", callback_data=f"edit_field_{pid}_madein"))
-    kb.add(InlineKeyboardButton("Rasm(lar)", callback_data=f"edit_field_{pid}_images"))
-    kb.add(InlineKeyboardButton("Bekor", callback_data="edit_cancel"))
+    # faqat product id bor bo‘lsa (ya'ni tugma: edit_{pid})
+    if len(parts) == 2:  
+        pid = int(parts[1])
 
-    await c.message.reply("✏️ Qaysi maydonni tahrirlashni xohlaysiz?", reply_markup=kb)
-    await c.answer()
+        kb = InlineKeyboardMarkup(row_width=2)
+        kb.add(InlineKeyboardButton("Nomi", callback_data=f"edit_field_{pid}_name"))
+        kb.add(InlineKeyboardButton("Narxi", callback_data=f"edit_field_{pid}_price"))
+        kb.add(InlineKeyboardButton("Model", callback_data=f"edit_field_{pid}_model"))
+        kb.add(InlineKeyboardButton("Made in", callback_data=f"edit_field_{pid}_madein"))
+        kb.add(InlineKeyboardButton("Rasm(lar)", callback_data=f"edit_field_{pid}_images"))
+        kb.add(InlineKeyboardButton("Bekor", callback_data="edit_cancel"))
+
+        await c.message.reply("✏️ Qaysi maydonni tahrirlashni xohlaysiz?", reply_markup=kb)
+        await c.answer()
 
 
 # Fieldni olish
