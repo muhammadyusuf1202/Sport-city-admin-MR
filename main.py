@@ -338,93 +338,55 @@ async def callback_delete(c: types.CallbackQuery):
     await c.answer()
 
 # ============= EDIT via Callback ==============
+# Tugmalarni to‘g‘ri field nomlari bilan yuboramiz
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith("edit_"))
 async def callback_edit(c: types.CallbackQuery):
     if not is_admin(c.from_user.id):
         await c.answer("❌ Siz admin emassiz!", show_alert=True)
         return
+
     pid = int(c.data.split("_")[-1])
-    # ask which field to edit
+
     kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(InlineKeyboardButton("Nomi", callback_data=f"edit_field_{pid}"))
-    kb.add(InlineKeyboardButton("Narxi", callback_data=f"edit_field_{pid}"))
-    kb.add(InlineKeyboardButton("Model", callback_data=f"edit_field_{pid}"))
-    kb.add(InlineKeyboardButton("Made in", callback_data=f"edit_field_{pid}"))
-    kb.add(InlineKeyboardButton("Rasm(lar)", callback_data=f"edit_field_{pid}"))
+    kb.add(InlineKeyboardButton("Nomi", callback_data=f"edit_field_{pid}_name"))
+    kb.add(InlineKeyboardButton("Narxi", callback_data=f"edit_field_{pid}_price"))
+    kb.add(InlineKeyboardButton("Model", callback_data=f"edit_field_{pid}_model"))
+    kb.add(InlineKeyboardButton("Made in", callback_data=f"edit_field_{pid}_madein"))
+    kb.add(InlineKeyboardButton("Rasm(lar)", callback_data=f"edit_field_{pid}_images"))
     kb.add(InlineKeyboardButton("Bekor", callback_data="edit_cancel"))
+
     await c.message.reply("✏️ Qaysi maydonni tahrirlashni xohlaysiz?", reply_markup=kb)
     await c.answer()
 
+
+# Fieldni olish
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith("edit_field_"))
 async def callback_edit_field(c: types.CallbackQuery, state: FSMContext):
-    parts = c.data.split("_")
+    parts = c.data.split("_")  # ["edit", "field", pid, field]
     pid = int(parts[2])
     field = parts[3]
-    await state.update_data(product_id=pid)
+
+    await state.update_data(product_id=pid, field=field)
+
     if field == 'name':
-        await state.update_data(field='name')
         await c.message.reply("✏️ Yangi nomni kiriting:")
         await EditProduct.field.set()
     elif field == 'price':
-        await state.update_data(field='price')
         await c.message.reply("💰 Yangi narxni kiriting:")
         await EditProduct.field.set()
     elif field == 'model':
-        await state.update_data(field='model')
         await c.message.reply("🔢 Yangi modelni kiriting:")
         await EditProduct.field.set()
     elif field == 'madein':
-        await state.update_data(field='made_in')
+        await state.update_data(field='made_in')  # bazada made_in bo‘lsa
         await c.message.reply("🏭 Yangi qayerda ishlab chiqarilganini kiriting:")
         await EditProduct.field.set()
     elif field == 'images':
-        await state.update_data(field='images')
         await c.message.reply("🖼 Yangi rasm(lar) yuboring (1-3 ta). Yakunlash uchun /done yuboring.")
         await EditProduct.value.set()
+
     await c.answer()
 
-@dp.message_handler(state=EditProduct.field)
-async def edit_receive_text(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    pid = data.get('product_id')
-    field = data.get('field')
-    new_value = message.text
-    if field not in ('name', 'price', 'model', 'made_in'):
-        await message.answer("❌ Noma'lum maydon")
-        await state.finish()
-        return
-    db_query(f"UPDATE products SET {field}=? WHERE id=?", (new_value, pid))
-    await message.answer("✅ Maydon yangilandi.")
-    await state.finish()
-
-# handle images for edit
-@dp.message_handler(content_types=['photo'], state=EditProduct.value)
-async def edit_images_recv(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    pid = data.get('product_id')
-    imgs: List[str] = data.get('images', [])
-    if len(imgs) >= 3:
-        await message.answer("✅ Maksimal 3 ta rasm qabul qilingan. /done bilan tugating.")
-        return
-    imgs.append(message.photo[-1].file_id)
-    await state.update_data(images=imgs)
-    await message.answer(f"Rasm qabul qilindi. Jami: {len(imgs)}")
-
-@dp.message_handler(commands=['done'], state=EditProduct.value)
-async def finish_edit_images(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    pid = data.get('product_id')
-    imgs = data.get('images', [])
-    if not imgs:
-        await message.answer("❌ Hech qanday rasm yuborilmadi.")
-        await state.finish()
-        return
-    # delete old images
-    db_query("DELETE FROM product_images WHERE product_id=?", (pid,))
-    for idx, fid in enumerate(imgs[:3]):
-        db_query("INSERT INTO product_images (product_id, file_id, position) VALUES (?,?,?)", (pid, fid, idx))
-    await message.answer("✅ Rasm(lar) yangilandi.")
-    await state.finish()
 
 @dp.callback_query_handler(lambda c: c.data == 'edit_cancel')
 async def edit_cancel_cb(c: types.CallbackQuery):
